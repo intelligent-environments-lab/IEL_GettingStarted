@@ -26,6 +26,14 @@ https://utexas.box.com/s/bk8nju5z7ocluf8dfoievivp7lrv3qbi
 ### Research Papers
 Generally speaking, follow the IMRAD structure. Here are a couple of general pointers, but every paper is different. Format and arguments vary for example whether you analyse data and provide insights, or develop a new method to solve a problem.
 
+Suggestion to write: Layout the logical arguments/ideas by writing down 'topical sentences' for each Section/Paragraph, kind of like a bullet point list. Then start filling in with working out the paragraphs.
+
+Suggestion to start writing: It's very tough when you stare at an empty page. Acknowledge it. Then just start writing down your ideas like a brain vomit, don't worry about anything. It's a lot easier to edit than write. Remember that.
+
+#### Abstract
+Tis is the mostly read part of your paper. Wait until the very end to write it, because ideally you can pick a few key sentences from each Section of your paper and that should be enough to understand it. Then edit to make it flow.
+
+
 #### Introduction
 Contains the big picture (what's the research field), relevance of the work (why does it matter), related works (who has done what) and most importantly what is the paper about. 
 
