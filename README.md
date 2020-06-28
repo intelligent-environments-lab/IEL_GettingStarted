@@ -11,17 +11,48 @@ Guides for various topics to get started with research at IEL
 
 ### Data Visualization
 
+Tufte Book. Tufte is considered the GodFather of good visual communication. I recommend everyone reads these 4 books for principles of data visualization.
+https://utexas.box.com/s/0lvvxhqcuwsevacxcb98iqejxv8l22ea
 
+("The Visual Display of Quantitative Information" is the one with most practical info)
 
 ## Building Energy Fundamentals
 
 
 ## Scientific Writing
-
+How to Write and Publish a Scientic Paper. I recommend you read at least Chapters 2 & 4 and Part II.
+https://utexas.box.com/s/bk8nju5z7ocluf8dfoievivp7lrv3qbi
 
 ### Research Papers
+Generally speaking, follow the IMRAD structure. Here are a couple of general pointers, but every paper is different. Format and arguments vary for example whether you analyse data and provide insights, or develop a new method to solve a problem.
 
+#### Introduction
+Contains the big picture (what's the research field), relevance of the work (why does it matter), related works (who has done what) and most importantly what is the paper about. 
+
+The third to last paragraph introduces the hypothesis, or research question, the gap in the literature. So the reader understands what gap your work is filling.
+
+The second to last paragraph should start with "The contribution of this paper is...", or "In this paper, we show...", or sth similar.
+
+The last paragraph is the structure of the paper.
+
+#### Methods
+How did you achieve your results? How was data collected. What was the experimental setup? Theoretical background? What are the methods of analysis?
+
+#### Results
+Describe what you found. This should logically follow from the Methods section. Often, you can start with the results, put a figure in, describe what you see, and them make sure the Methods section contains everything that allows the reader to understand how the figure was generated. And then the Introduction should contain info why that figure matters (not literal info, but it should make sense).
+
+And 
+
+#### Discussion
+This is where you typically interpret your findings. Does it make sense, is it surprising? How well did you address the research question/hypothesis that you laid out in the Introduction?
+
+This is also where you can and should address limitation of your findings (experimental setup, data collection, etc) and offer suggestions to future works to address them.
+
+#### Conclusion
+There is sometimes a separate Conclusion section which is the summary of the paper with the major findings.
 
 ### Review Papers
 
 
+### Reference Management
+IEL uses Mendeley for reference management. It integrates with both LaTeX (and Overleaf) and Word and lets us collaborate.
