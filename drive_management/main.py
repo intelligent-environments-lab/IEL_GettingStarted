@@ -1,25 +1,35 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-# Authentication 
-# Needs to be tweaked, currently unclear how credentials are saved and how long they last
-# Seems to ask to reauthenticate after a short time period
-
+#Authentication
 
 gauth = GoogleAuth()
-#gauth.LocalWebserverAuth() # Creates local webserver and auto handles authentication.
-#gauth.SaveCredentialsFile("mycreds.txt")
+# Try to load saved client credentials
 gauth.LoadCredentialsFile("mycreds.txt")
+if gauth.credentials is None:
+    # Authenticate if they're not there
+    gauth.LocalWebserverAuth()
+elif gauth.access_token_expired:
+    # Refresh them if expired
+    gauth.Refresh()
+else:
+    # Initialize the saved creds
+    gauth.Authorize()
+# Save the current credentials to a file
+gauth.SaveCredentialsFile("mycreds.txt")
 
 drive = GoogleDrive(gauth)
 
 
 # Methods for various API Calls
 
+glob_file_path = "root"
+current_folder_id = "null"
+
 # queries ENTIRE Drive (shared and personal) for filename, downloads into specified filepath
 # potential conflict if multiple files have same filename 
 def downloadFile(file_name):
-  file_list = drive.ListFile({'q':"title = '{}' and trashed=false".format(file_name)}).GetList()
+  file_list = drive.ListFile({'q': "'{}' in parents and trashed=false".format(current_folder_id)}).GetList()
   download_path = input("Enter the file path for the download location: ")
   for file1 in file_list:
     if file1['title'] == file_name:
@@ -36,28 +46,6 @@ def getFolderID(folder_name):
     if files['title'] == folder_name:
       return files['id']
 
-
-# displays all files and folders in "Shared with Me"
-def showShared():
-  print("Showing 'Shared with Me' Folders and Files")
-  file_list = drive.ListFile({'q': "sharedWithMe"}).GetList()
-  for files in file_list:
-      print('title: %s, id: %s' % (files['title'], files['id']))
-
-
-# displays all files and folders, shared and personal
-def showMyDrive():
-  print("Showing All Folders and Files (excluding trash)")
-  file_list = drive.ListFile({'q': 'trashed=false'}).GetList()
-  for files in file_list:
-    print(files['title'], files['id'])
-
-# prints contents of folder by folder name
-def folderNav(folder_name):
-  folder_id = getFolderID(folder_name)
-  file_list = drive.ListFile({'q': "'{}' in parents".format(folder_id)}).GetList()
-  for files in file_list:
-    print('title: %s, id: %s' % (files['title'], files['id']))
 
 # returns contents inside a given folder, query uses folderID
 def getFolderContents(folder):
@@ -91,8 +79,12 @@ def filePathNav(file_path):
       return
   if(isChild == True):
     res = getFolderContents(folder_list[i])
+    global current_folder_id
+    global glob_file_path
+    glob_file_path = file_path
+    current_folder_id = getFolderID(folder_list[i])
     for files in res:
-      print('title: %s, id: %s' % (files['title'], files['id']))
+      print(file_path + '/%s, id: %s' % (files['title'], files['id']))
 
 
 # test cases
@@ -103,10 +95,11 @@ def navTest():
 def downloadTest():
   file_name = input("Enter filename to be downloaded: ")
   downloadFile(file_name)
+   #print(glob_file_path)
 
 
 navTest()
-#downloadTest()
+downloadTest()
 
 
 # ISSUES TO BE FIXED:
@@ -118,3 +111,27 @@ navTest()
 # - save most recent file path queued as a global,
 # - restrict the scope of downloadFile to only query within the current directory
 # - this avoids conflict of file and folders with same name
+
+
+
+# displays all files and folders in "Shared with Me"
+# def showShared():
+#   print("Showing 'Shared with Me' Folders and Files")
+#   file_list = drive.ListFile({'q': "sharedWithMe"}).GetList()
+#   for files in file_list:
+#       print('title: %s, id: %s' % (files['title'], files['id']))
+
+
+# # displays all files and folders, shared and personal
+# def showMyDrive():
+#   print("Showing All Folders and Files (excluding trash)")
+#   file_list = drive.ListFile({'q': 'trashed=false'}).GetList()
+#   for files in file_list:
+#     print(files['title'], files['id'])
+
+# # prints contents of folder by folder name
+# def folderNav(folder_name):
+#   folder_id = getFolderID(folder_name)
+#   file_list = drive.ListFile({'q': "'{}' in parents".format(folder_id)}).GetList()
+#   for files in file_list:
+#     print('title: %s, id: %s' % (files['title'], files['id']))
