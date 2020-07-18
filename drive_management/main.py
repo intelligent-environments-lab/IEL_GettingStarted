@@ -50,7 +50,7 @@ def authenticate_drive(file_name=None,verbose=True):
 	drive = GoogleDrive(gauth)
 	return drive
 
-def downloadFile(file_name=None,drive=None):
+def download_file(file_name=None,drive=None):
 	'''
 	Queries entire Drive (shared and personal) for file name and downloads into specified file path.\\
 	NOTE: Potential conflict if multiple files have same file name. 
@@ -71,7 +71,7 @@ def downloadFile(file_name=None,drive=None):
 			full_path = download_path + "/" + file_name
 			file2.GetContentFile(full_path)  # Save Drive file as a local file
 
-def getFolderID(folder=None,drive=None):
+def get_folder_id(folder=None,drive=None):
 	'''
 	Searches folder by name and returns folder ID.
 	Parameters
@@ -87,7 +87,7 @@ def getFolderID(folder=None,drive=None):
 		if files['title'] == folder:
 			return files['id']
 
-def getFolderContents(folder=None,drive=None):
+def get_folder_contents(folder=None,drive=None):
 	'''
 	Returns contents inside a given folder, query uses folderID.
 	Parameters
@@ -98,11 +98,11 @@ def getFolderContents(folder=None,drive=None):
 	-------
 	list
 	'''
-	folder_id = getFolderID(folder=folder,drive=drive)
+	folder_id = get_folder_id(folder=folder,drive=drive)
 	file_list = drive.ListFile({'q': "'{}' in parents".format(folder_id)}).GetList()
 	return file_list
 
-def navHelper(parent=None,child=None):
+def nav_helper(parent=None,child=None):
 	'''
 	Helper function for file navigation.
 	Parameters
@@ -118,7 +118,7 @@ def navHelper(parent=None,child=None):
 			return True
 	return False
 
-def filePathNav(file_path=None,drive=None):
+def file_path_nav(file_path=None,drive=None):
 	'''
 	Prints the content of a given file path.
 	Parameters
@@ -131,25 +131,25 @@ def filePathNav(file_path=None,drive=None):
 	'''
 	folder_list = file_path.split("/")
 	if(len(folder_list) == 1): # if only only folder is queried 
-		res = getFolderContents(folder=folder_list[0],drive=drive)
+		res = get_folder_contents(folder=folder_list[0],drive=drive)
 		for files in res:
 			print('title: %s, id: %s' % (files['title'], files['id']))
 		return
 	i = 0     
 	while(i < len(folder_list) - 1):
-		parent = getFolderContents(folder=folder_list[i],drive=drive)
-		isChild = navHelper(parent, folder_list[i+1])
+		parent = get_folder_contents(folder=folder_list[i],drive=drive)
+		isChild = nav_helper(parent, folder_list[i+1])
 		if(isChild == True):
 			i+=1
 		else: # folder does not exist in parent
 			print("folder not found")
 			return
 	if(isChild == True):
-		res = getFolderContents(folder=folder_list[i],drive=drive)
+		res = get_folder_contents(folder=folder_list[i],drive=drive)
 		global current_folder_id
 		global glob_file_path
 		glob_file_path = file_path
-		current_folder_id = getFolderID(folder=folder_list[i],drive=drive)
+		current_folder_id = get_folder_id(folder=folder_list[i],drive=drive)
 		for files in res:
 			print(file_path + '/%s, id: %s' % (files['title'], files['id']))
 
@@ -164,20 +164,14 @@ def main():
 	-------
 	None
 	'''
-	# Initialize Google Drive
 	drive = authenticate_drive()
 
-	# try:
-	# Navigate to a file path and print its contents
 	file_path = input("Enter a file path to navigate to: ")
-	filePathNav(file_path=file_path,drive=drive)
+	file_path_nav(file_path=file_path,drive=drive)
 
-	# Download a file
 	file_name = input("Enter file name to be downloaded: ")
-	downloadFile(file_name=file_name,drive=drive)
+	download_file(file_name=file_name,drive=drive)
 	#print(glob_file_path)
-	# except Exception as e:
-		# drive = authenticate_drive()
 		
 if __name__ == "__main__":
 	main()
