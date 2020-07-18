@@ -6,31 +6,62 @@ current_folder_id = "null"
 
 # Methods for various API Calls
 
-# Authentication
-def authenticate_drive(file_name):
+def authenticate_drive(file_name=None,verbose=True):
+	'''
+	Authenticates user and returns GoogleDrive instance.\\ 
+	If credentials file exists and is unexpired, it is used to authenticate otherwise, 
+	user is prompted with a Google authentication webpage for new credentials.  
+	Parameters
+	----------
+	file_name : str, absolute file path of user credentials.
+	Returns
+	-------
+	GoogleDrive.
+	'''
 	gauth = GoogleAuth()
+	updated_credentials = False
+
+	try:
+		assert file_name != None
+	except AssertionError as e:
+		file_name = "mycreds.txt"
 
 	# Try to load saved client credentials
-	gauth.LoadCredentialsFile("mycreds.txt")
+	gauth.LoadCredentialsFile(file_name)
 	if gauth.credentials is None:
 			# Authenticate if they're not there
 			gauth.LocalWebserverAuth()
+			updated_credentials = True
 	elif gauth.access_token_expired:
 			# Refresh them if expired
 			gauth.Refresh()
+			updated_credentials = True
 	else:
 			# Initialize the saved creds
 			gauth.Authorize()
+	
 	# Save the current credentials to a file
-	gauth.SaveCredentialsFile("mycreds.txt")
+	gauth.SaveCredentialsFile(file_name)
+	if verbose:
+		print("Credentials saved to "+file_name)
+	else:
+		pass
 
 	drive = GoogleDrive(gauth)
+	return drive
 
-	return gauth, drive
-
-# queries ENTIRE Drive (shared and personal) for filename, downloads into specified filepath
-# potential conflict if multiple files have same filename 
-def downloadFile(file_name):
+def downloadFile(file_name=None,drive=None):
+	'''
+	Queries entire Drive (shared and personal) for file name and downloads into specified file path.\\
+	NOTE: Potential conflict if multiple files have same file name. 
+	Parameters
+	----------
+	file_name : str, title of file to download.
+	drive : GoogleDrive
+	Returns
+	-------
+	None
+	'''
 	file_list = drive.ListFile({'q': "'{}' in parents and trashed=false".format(current_folder_id)}).GetList()
 	download_path = input("Enter the file path for the download location: ")
 	for file1 in file_list:
@@ -40,39 +71,73 @@ def downloadFile(file_name):
 			full_path = download_path + "/" + file_name
 			file2.GetContentFile(full_path)  # Save Drive file as a local file
 
-
-# searches folder by name and returns folder ID
-def getFolderID(folder_name):
+def getFolderID(folder=None,drive=None):
+	'''
+	Searches folder by name and returns folder ID.
+	Parameters
+	----------
+	folder : str, title of folder to download.
+	drive : GoogleDrive
+	Returns
+	-------
+	str
+	'''
 	file_list = drive.ListFile({'q': 'trashed=false'}).GetList()
 	for files in file_list:
-		if files['title'] == folder_name:
+		if files['title'] == folder:
 			return files['id']
 
-
-# returns contents inside a given folder, query uses folderID
-def getFolderContents(folder):
-	folder_id = getFolderID(folder)
+def getFolderContents(folder=None,drive=None):
+	'''
+	Returns contents inside a given folder, query uses folderID.
+	Parameters
+	----------
+	folder : str, name of folder to download.
+	drive : GoogleDrive
+	Returns
+	-------
+	list
+	'''
+	folder_id = getFolderID(folder=folder,drive=drive)
 	file_list = drive.ListFile({'q': "'{}' in parents".format(folder_id)}).GetList()
 	return file_list
 
-# helper function for file navigation
-def navHelper(parent, child):
+def navHelper(parent=None,child=None):
+	'''
+	Helper function for file navigation.
+	Parameters
+	----------
+	parent : unknown
+	child : unknown
+	Returns
+	-------
+	bool
+	'''
 	for i in parent:
 		if i['title'] == child:
 			return True
 	return False
 
-# prints the content of a given file path
-def filePathNav(file_path):
+def filePathNav(file_path=None,drive=None):
+	'''
+	Prints the content of a given file path.
+	Parameters
+	----------
+	parent : unknown
+	child : unknown
+	Returns
+	-------
+	None
+	'''
 	folder_list = file_path.split("/")
 	if(len(folder_list) == 1): # if only only folder is queried 
-		res = getFolderContents(folder_list[0])
+		res = getFolderContents(folder=folder_list[0],drive=drive)
 		for files in res:
 			print('title: %s, id: %s' % (files['title'], files['id']))
 		return
 	i = 0     
 	while(i < len(folder_list) - 1):
-		parent = getFolderContents(folder_list[i])
+		parent = getFolderContents(folder=folder_list[i],drive=drive)
 		isChild = navHelper(parent, folder_list[i+1])
 		if(isChild == True):
 			i+=1
@@ -80,29 +145,42 @@ def filePathNav(file_path):
 			print("folder not found")
 			return
 	if(isChild == True):
-		res = getFolderContents(folder_list[i])
+		res = getFolderContents(folder=folder_list[i],drive=drive)
 		global current_folder_id
 		global glob_file_path
 		glob_file_path = file_path
-		current_folder_id = getFolderID(folder_list[i])
+		current_folder_id = getFolderID(folder=folder_list[i],drive=drive)
 		for files in res:
 			print(file_path + '/%s, id: %s' % (files['title'], files['id']))
 
+def main():
+	'''
+	Provides interface for file download.\\
+	Called when script is executed from Terminal.
+	Parameters
+	----------
+	None
+	Returns
+	-------
+	None
+	'''
+	# Initialize Google Drive
+	drive = authenticate_drive()
 
-# test cases
-def navTest():
-	path = input("Enter a file path to navigate to: ")
-	filePathNav(path)
+	# try:
+	# Navigate to a file path and print its contents
+	file_path = input("Enter a file path to navigate to: ")
+	filePathNav(file_path=file_path,drive=drive)
 
-def downloadTest():
-	file_name = input("Enter filename to be downloaded: ")
-	downloadFile(file_name)
-	 #print(glob_file_path)
-
-
-navTest()
-downloadTest()
-
+	# Download a file
+	file_name = input("Enter file name to be downloaded: ")
+	downloadFile(file_name=file_name,drive=drive)
+	#print(glob_file_path)
+	# except Exception as e:
+		# drive = authenticate_drive()
+		
+if __name__ == "__main__":
+	main()
 
 # ISSUES TO BE FIXED:
 #  - identical folder/file names create conflict
@@ -132,8 +210,8 @@ downloadTest()
 #     print(files['title'], files['id'])
 
 # # prints contents of folder by folder name
-# def folderNav(folder_name):
-#   folder_id = getFolderID(folder_name)
+# def folderNav(folder):
+#   folder_id = getFolderID(folder)
 #   file_list = drive.ListFile({'q': "'{}' in parents".format(folder_id)}).GetList()
 #   for files in file_list:
 #     print('title: %s, id: %s' % (files['title'], files['id']))
