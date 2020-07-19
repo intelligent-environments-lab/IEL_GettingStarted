@@ -180,10 +180,10 @@ def get_file_path_summary(param_dict=None,drive=None,verbose=False):
 
 def is_integer(x=None):
 	try:
-			int(x)
-			return True
+		int(x)
+		return True
 	except:
-			return False
+		return False
 
 def main():
 	'''
