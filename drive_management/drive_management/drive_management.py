@@ -3,6 +3,7 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import os
 import logging
+from copy import deepcopy
 
 # Constants & Variables
 OWNER = 'nweye@utexas.edu'
@@ -10,7 +11,12 @@ ROOT_ID = 'sharedWithMe'
 METADATA_FIELDS = ['title','modifiedDate','fileSize']
 DEFAULT_CREDENTIALS_FILENAME = 'credentials.txt'
 VERBOSE = False
-DEFAULT_DOWNLOAD_DIRECTORY = 'downloads/'
+DEFAULT_DOWNLOAD_DIRECTORY = '../downloads/'
+PARAM_DICT = {
+	'q': f"{ROOT_ID} and '{OWNER}' in owners and trashed=false",
+	'includeTeamDriveItems': True,
+	'supportsTeamDrives': True	
+}
 
 # Functions
 def authenticate_drive(file_name=None,verbose=VERBOSE):
@@ -58,7 +64,7 @@ def authenticate_drive(file_name=None,verbose=VERBOSE):
 	drive = GoogleDrive(gauth)
 	return drive
 
-def get_drive_file_list(param_dict=None,drive=None,verbose=VERBOSE):
+def get_drive_file_list(param_dict=PARAM_DICT,drive=None,verbose=VERBOSE):
 	'''
 	Description
 	----------
@@ -136,7 +142,7 @@ def get_drive_file_id_list(file_path=None,drive=None,root_id=ROOT_ID,owner=OWNER
 	
 	return file_id_list
 
-def download(file_id=None,file_path=None,download_filename=None,download_directory=DEFAULT_DOWNLOAD_DIRECTORY,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
+def download(file_id=None,file_path=None,download_filename=None,download_directory='',drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
 	'''
 	Description
 	-----------
@@ -190,34 +196,54 @@ def download(file_id=None,file_path=None,download_filename=None,download_directo
 		print(type(e).__name__ + ': ' + str(e))
 		return False
 
-def get_file_metadata(param_dict=None,metadata_fields=METADATA_FIELDS,drive=None,verbose=VERBOSE):
+def get_file_metadata(file_path=None,param_dict=PARAM_DICT,metadata_fields=METADATA_FIELDS,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
 	'''
 	Description
 	-----------
 	Queries for and returns GoogleDrive File instances' metadata.
 	Parameters
 	----------
+	file_path : str, absolute path to GoogleDriveFile. Ignored if file_id is parsed.\\
 	param_dict : dict, parameters to be satified by query\\
 	metadata_fields : list, file metadata fields to be returned.\\
 	drive : GoogleDrive, authenticated GoogleDrive instance\\
+	root_id : file ID of root folder\\
+	owner : owner of root folder\\
 	verbose : bool, execution of print statements
 	Returns
 	-------
-	list, contains list of metadata fields for each file found in query
+	list, contains dictionary of metadata fields for each file found in query
 	'''
 	metadata = []
+	param_dict = deepcopy(PARAM_DICT)
 	try:
+		# Get file ID
+		if not file_path == None:
+			file_id_list = get_drive_file_id_list(file_path=file_path,drive=drive,root_id=root_id,owner=owner,verbose=verbose)
+			assert len(file_id_list) > 0
+			param_dict['q'] = f"'{file_id_list[-1]}' in parents and trashed=false" 
+		else:
+			pass
 		parent = get_drive_file_list(param_dict=param_dict,drive=drive,verbose=verbose)
 		
 		for child in parent:
-			child_metadata = []
+			child_metadata = {}
 			
 			for field in metadata_fields:
 				try:
-					child_metadata.append(f'{field}: {child[field]}')
+					child_metadata[field] = child[field]
 				except:
-					child_metadata.append(f'{field}: -')
-			metadata.append(', '.join(child_metadata))
+					child_metadata[field] = '-'
+			metadata.append(child_metadata)
+	
+	except AssertionError as e:
+		if verbose:
+			print(f'{file_path} not found in Drive')
+		else:
+			pass
+		logging.error(e)
+		print(type(e).__name__ + ': ' + str(e))
+		return False
 
 	except Exception as e:
 		logging.error(e)
@@ -249,11 +275,7 @@ def main():
 	drive = authenticate_drive()
 	current_file_path = ''
 	current_id = None
-	param_dict = {
-		'q': '',
-		'includeTeamDriveItems': True,
-		'supportsTeamDrives': True
-	}
+	param_dict = deepcopy(PARAM_DICT)
 	file_id_list = []
 	current_file_path = current_file_path.strip()
 	
@@ -271,7 +293,8 @@ def main():
 			print('\n------------------------\nIEL Data Management Tool\n------------------------')
 			print(f'Current file path: /Shared with me/{current_file_path}')
 			for i in range(len(metadata)):
-				print(f'({i+1}) {metadata[i]}')
+				string = ', '.join([f'{key}: {metadata[i][key]}' for key in metadata[i]])
+				print(f'({i+1}) {string}')
 
 			print('\n----\nMenu\n----')	
 			print('1. Exit.')
