@@ -1,19 +1,24 @@
-# Import libraries
+# Import Libraries
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import os
 import logging
 
-# Constants & variables
-owner = 'nweye@utexas.edu'
-root_id = 'sharedWithMe'
-file_description_fields = ['title','modifiedDate','fileSize']
+# Constants & Variables
+OWNER = 'nweye@utexas.edu'
+ROOT_ID = 'sharedWithMe'
+METADATA_FIELDS = ['title','modifiedDate','fileSize']
+DEFAULT_CREDENTIALS_FILENAME = 'credentials.txt'
+VERBOSE = False
+DEFAULT_DOWNLOAD_DIRECTORY = 'downloads/'
 
-# Methods for various API Calls
-def authenticate_drive(file_name=None,verbose=False):
+# Functions
+def authenticate_drive(file_name=None,verbose=VERBOSE):
 	'''
+	Description
+	----------
 	Authenticates user and returns GoogleDrive instance.\\ 
-	If credentials file exists and is unexpired, it is used to authenticate otherwise, 
+	If credentials file exists and is unexpired, it is used to authenticate otherwise,\\
 	user is prompted with a Google authentication webpage for new credentials.  
 	Parameters
 	----------
@@ -22,15 +27,13 @@ def authenticate_drive(file_name=None,verbose=False):
 	-------
 	GoogleDrive.
 	'''
-
 	gauth = GoogleAuth()
 	updated_credentials = False
 
 	try:
 		assert file_name != None
 	except AssertionError as e:
-		file_name = "credentials.txt"
-
+		file_name = DEFAULT_CREDENTIALS_FILENAME
 	# Try to load saved client credentials
 	try:
 		gauth.LoadCredentialsFile(file_name)
@@ -45,7 +48,6 @@ def authenticate_drive(file_name=None,verbose=False):
 			# Authenticate if they're not there
 			gauth.LocalWebserverAuth()
 			updated_credentials = True
-	
 	# Save the current credentials to a file
 	gauth.SaveCredentialsFile(file_name)
 	if verbose and updated_credentials:
@@ -56,22 +58,45 @@ def authenticate_drive(file_name=None,verbose=False):
 	drive = GoogleDrive(gauth)
 	return drive
 
-def get_drive_file_list(param_dict=None,drive=None,verbose=False):
+def get_drive_file_list(param_dict=None,drive=None,verbose=VERBOSE):
+	'''
+	Description
+	----------
+	Returns list of GoogleDriveFile instances that satisfy query in parameter dict.
+	Parameters
+	----------
+	param_dict : dict, parameters to be satified by query\\
+	drive : GoogleDrive, authenticated GoogleDrive instance\\
+	verbose : bool, execution of print statements
+	Returns
+	-------
+	list, contains GoogleDriveFile instances
+	'''
 	file_list = []
-	
 	try:
 		file_list = drive.ListFile(param_dict).GetList()
-	
 	except Exception as e:
 		logging.error(e)
 		print(type(e).__name__ + ': ' + str(e))
 	
 	return file_list
 
-def get_drive_file_id_list(file_path=None,drive=None,owner=None,verbose=False):
+def get_drive_file_id_list(file_path=None,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
 	'''
+	Description
+	-----------
+	Returns list of file IDs that map to the file path.
+	Parameters
+	----------
+	file_path : str, absolute path to GoogleDriveFile\\
+	drive : GoogleDrive, authenticated GoogleDrive instance\\
+	root_id : str, file ID of root folder\\
+	owner : str, owner of root folder\\
+	verbose : bool, execution of print statements
+	Returns
+	-------
+	list, contains GoogleDriveFile IDs
 	'''
-
 	title_list = file_path.split('/')
 	file_id_list = []
 	
@@ -81,7 +106,7 @@ def get_drive_file_id_list(file_path=None,drive=None,owner=None,verbose=False):
 			q = f"{root_id} and title='{title_list[i]}' and '{owner}' in owners and trashed=false"
 		else:
 			q = f"'{file_id_list[-1]}' in parents and title='{title_list[i]}' and '{owner}' in owners and trashed=false"
-
+		
 		# Run query
 		try:
 			param_dict = {
@@ -90,16 +115,14 @@ def get_drive_file_id_list(file_path=None,drive=None,owner=None,verbose=False):
 				'supportsTeamDrives': True
 			}
 			file_list = get_drive_file_list(param_dict=param_dict,drive=drive,verbose=verbose)
-			
 			assert len(file_list) == 1
 			file_id_list.append(file_list[0]['id'])
 		
 		except AssertionError as e:
 			if verbose:
-				print(f'{"/".join(title_list[0:i+1])} not found in Drive')
+				print(f'{"/".join(title_list[0:i+1])} not found in Drive or multiple match found.')
 			else:
 				pass
-			
 			logging.error(e)
 			print(type(e).__name__ + ': ' + str(e))
 			file_id_list = []
@@ -113,15 +136,32 @@ def get_drive_file_id_list(file_path=None,drive=None,owner=None,verbose=False):
 	
 	return file_id_list
 
-def download(file_path=None,file_id=None,download_to='downloads/',drive=None,owner=None,verbose=False):
+def download(file_id=None,file_path=None,download_filename=None,download_directory=DEFAULT_DOWNLOAD_DIRECTORY,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
 	'''
+	Description
+	-----------
+	Downloads file in Google Drive to local drive.
+	Parameters
+	----------
+	file_id : str, file ID of target GoogleDriveFile. Takes priority over file_path.\\
+	file_path : str, absolute path to GoogleDriveFile. Ignored if file_id is parsed.\\
+	download_filename : str, name to use for downloaded file.\\
+	download_directory : str, absolute or relative path to download directory.\\
+	drive : GoogleDrive, authenticated GoogleDrive instance\\
+	root_id : file ID of root folder\\
+	owner : owner of root folder\\
+	verbose : bool, execution of print statements
+	Returns
+	-------
+	bool
 	'''
-	
 	try:
+		# Get file ID if no file ID is parsed
 		if file_id == None:
 			file_id_list = get_drive_file_id_list(
 				file_path=file_path,
 				drive=drive,
+				root_id=root_id,
 				owner=owner,
 				verbose=verbose
 			)
@@ -129,8 +169,8 @@ def download(file_path=None,file_id=None,download_to='downloads/',drive=None,own
 			file_id = file_id_list[-1]
 		else:
 			pass
-
-		filename = download_to + file_path.split('/')[-1]
+		# Download
+		filename = download_directory + download_filename
 		drive.CreateFile({'id': file_id}).GetContentFile(filename)
 		if verbose:
 			print(f'Download location: {filename}')
@@ -141,7 +181,6 @@ def download(file_path=None,file_id=None,download_to='downloads/',drive=None,own
 			print(f'{file_path} not found in Drive')
 		else:
 			pass
-		
 		logging.error(e)
 		print(type(e).__name__ + ': ' + str(e))
 		return False
@@ -151,32 +190,40 @@ def download(file_path=None,file_id=None,download_to='downloads/',drive=None,own
 		print(type(e).__name__ + ': ' + str(e))
 		return False
 
-def get_file_path_summary(param_dict=None,drive=None,verbose=False):
+def get_file_metadata(param_dict=None,metadata_fields=METADATA_FIELDS,drive=None,verbose=VERBOSE):
 	'''
+	Description
+	-----------
+	Queries for and returns GoogleDrive File instances' metadata.
+	Parameters
+	----------
+	param_dict : dict, parameters to be satified by query\\
+	metadata_fields : list, file metadata fields to be returned.\\
+	drive : GoogleDrive, authenticated GoogleDrive instance\\
+	verbose : bool, execution of print statements
+	Returns
+	-------
+	list, contains list of metadata fields for each file found in query
 	'''
-
-	summary = []
-
+	metadata = []
 	try:
 		parent = get_drive_file_list(param_dict=param_dict,drive=drive,verbose=verbose)
 		
 		for child in parent:
-			file_description = []
+			child_metadata = []
 			
-			for field in file_description_fields:
-				
+			for field in metadata_fields:
 				try:
-					file_description.append(f'{field}: {child[field]}')
+					child_metadata.append(f'{field}: {child[field]}')
 				except:
-					file_description.append(f'{field}: -')
-
-			summary.append(', '.join(file_description))
+					child_metadata.append(f'{field}: -')
+			metadata.append(', '.join(child_metadata))
 
 	except Exception as e:
 		logging.error(e)
 		print(type(e).__name__ + ': ' + str(e))
 	
-	return summary
+	return metadata
 
 def is_integer(x=None):
 	try:
@@ -187,6 +234,8 @@ def is_integer(x=None):
 
 def main():
 	'''
+	Description
+	-----------
 	Provides interface for file download.\\
 	Called when script is executed from Terminal.
 	Parameters
@@ -206,24 +255,23 @@ def main():
 		'supportsTeamDrives': True
 	}
 	file_id_list = []
-
 	current_file_path = current_file_path.strip()
+	
 	while True:
-		# print current filepath
 		if current_file_path == '':
-			param_dict['q'] = f"{root_id} and '{owner}' in owners and trashed=false"
+			param_dict['q'] = f"{ROOT_ID} and '{OWNER}' in owners and trashed=false"
 		elif not current_id == None:
 			param_dict['q'] = f"'{current_id}' in parents and trashed=false"
 		else:
 			break
 		
-		summary = get_file_path_summary(param_dict=param_dict,drive=drive)
+		metadata = get_file_metadata(param_dict=param_dict,drive=drive)
 		response = ''
 		while not is_integer(x=response) or int(response) < 1:
 			print('\n------------------------\nIEL Data Management Tool\n------------------------')
-			print(f'Current file path: /{current_file_path}')
-			for i in range(len(summary)):
-				print(f'({i+1}) {summary[i]}')
+			print(f'Current file path: /Shared with me/{current_file_path}')
+			for i in range(len(metadata)):
+				print(f'({i+1}) {metadata[i]}')
 
 			print('\n----\nMenu\n----')	
 			print('1. Exit.')
@@ -234,12 +282,9 @@ def main():
 		response = int(response)
 		if response == 1:
 			break
-		
 		elif response > 3:
 			continue
-
 		else:
-			
 			# Get file path or filename as case may be
 			file_path = ''
 			while len(file_path) < 1:
@@ -249,7 +294,6 @@ def main():
 			if not file_path[0] == '/' and len(current_file_path) > 0:
 				file_path = file_path.strip('/').split('/')
 				temp_current_file_path = current_file_path.strip('/').split('/')
-				
 				while len(file_path) > 0 and len(temp_current_file_path) > 0:
 					if file_path[0] == '..':
 						del file_path[0]
@@ -261,6 +305,8 @@ def main():
 					current_file_path = ''
 					current_id = None
 					continue
+				else:
+					pass
 
 				file_path = temp_current_file_path + file_path
 				file_path = '/'.join(file_path)
@@ -270,24 +316,32 @@ def main():
 
 			# Get id list as proxy for navigating through Drive
 			file_path = file_path.strip('/')
-			file_id_list = get_drive_file_id_list(file_path=file_path,drive=drive,owner=owner)
+			file_id_list = get_drive_file_id_list(
+				file_path=file_path,
+				drive=drive,
+				root_id=ROOT_ID,
+				owner=OWNER
+			)
 
 			if len(file_id_list) > 0:
 				# Download
 				if response == 2:
-					download(
+					success = download(
 						file_path=file_path,
 						file_id=file_id_list[-1],
+						download_filename=file_path.split('/')[-1],
+						download_directory=DEFAULT_DOWNLOAD_DIRECTORY,
 						drive=drive,
+						root_id=ROOT_ID,
+						owner=OWNER,
 						verbose=True
 					)
 				else:
 					# Navigate
 					current_file_path = file_path
-					current_id = file_id_list[-1]
-					
+					current_id = file_id_list[-1]		
 			else:
-				print(f'No file path in Driver matching: {file_path}')
+				print(f'No file path in Drive matching: {file_path}')
 
 # Terminal execution		
 if __name__ == "__main__":
