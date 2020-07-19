@@ -1,2 +1,5 @@
 mycreds.txt
 credentials.json
+downloads/*
+
+!.gitkeep
