@@ -64,7 +64,7 @@ def authenticate_drive(file_name=None,verbose=VERBOSE):
 	drive = GoogleDrive(gauth)
 	return drive
 
-def get_drive_file_list(param_dict=PARAM_DICT,drive=None,verbose=VERBOSE):
+def get_drive_file_list(param_dict=None,drive=None,verbose=VERBOSE):
 	'''
 	Description
 	----------
@@ -196,15 +196,16 @@ def download(file_id=None,file_path=None,download_filename=None,download_directo
 		print(type(e).__name__ + ': ' + str(e))
 		return False
 
-def get_file_metadata(file_path=None,param_dict=PARAM_DICT,metadata_fields=METADATA_FIELDS,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
+def get_file_metadata(file_path=None,param_dict=None,metadata_fields=METADATA_FIELDS,drive=None,root_id=ROOT_ID,owner=OWNER,verbose=VERBOSE):
 	'''
 	Description
 	-----------
 	Queries for and returns GoogleDrive File instances' metadata.
+	Return metadata of root folder if neither file path nor parameter dictionary is parsed.
 	Parameters
 	----------
-	file_path : str, absolute path to GoogleDriveFile. Ignored if file_id is parsed.\\
-	param_dict : dict, parameters to be satified by query\\
+	file_path : str, absolute path to Google DriveFile\\
+	param_dict : dict, parameters to be satified by query. Ignored if file_path is parsed.\\
 	metadata_fields : list, file metadata fields to be returned.\\
 	drive : GoogleDrive, authenticated GoogleDrive instance\\
 	root_id : file ID of root folder\\
@@ -215,15 +216,19 @@ def get_file_metadata(file_path=None,param_dict=PARAM_DICT,metadata_fields=METAD
 	list, contains dictionary of metadata fields for each file found in query
 	'''
 	metadata = []
-	param_dict = deepcopy(PARAM_DICT)
 	try:
 		# Get file ID
 		if not file_path == None:
+			file_path = file_path.strip('/')
 			file_id_list = get_drive_file_id_list(file_path=file_path,drive=drive,root_id=root_id,owner=owner,verbose=verbose)
 			assert len(file_id_list) > 0
+			param_dict = deepcopy(PARAM_DICT)
 			param_dict['q'] = f"'{file_id_list[-1]}' in parents and trashed=false" 
+		elif param_dict == None:
+			param_dict = deepcopy(PARAM_DICT)
 		else:
 			pass
+
 		parent = get_drive_file_list(param_dict=param_dict,drive=drive,verbose=verbose)
 		
 		for child in parent:
@@ -243,11 +248,12 @@ def get_file_metadata(file_path=None,param_dict=PARAM_DICT,metadata_fields=METAD
 			pass
 		logging.error(e)
 		print(type(e).__name__ + ': ' + str(e))
-		return False
+		metadata = []
 
 	except Exception as e:
 		logging.error(e)
 		print(type(e).__name__ + ': ' + str(e))
+		metadata = []
 	
 	return metadata
 
@@ -315,6 +321,7 @@ def main():
 
 			# Set as absolute file path
 			if not file_path[0] == '/' and len(current_file_path) > 0:
+				print(file_path)
 				file_path = file_path.strip('/').split('/')
 				temp_current_file_path = current_file_path.strip('/').split('/')
 				while len(file_path) > 0 and len(temp_current_file_path) > 0:
@@ -323,6 +330,7 @@ def main():
 						del temp_current_file_path[-1]
 					else:
 						break
+				print(file_path)
 				
 				if len(file_path) == 0 and len(temp_current_file_path) == 0:
 					current_file_path = ''
