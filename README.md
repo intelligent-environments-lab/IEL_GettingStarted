@@ -1,9 +1,7 @@
 # IEL Getting Started
-Guides for various topics to get started with research at IEL
-
+Guides for various topics to get started with research at IEL. Be sure to also check out the [Wiki](https://github.com/intelligent-environments-lab/IEL_GettingStarted/wiki) for a more comprehensive look at some of these topics!
 
 ## Python Resources
-
 
 ## Data Analytics
 
