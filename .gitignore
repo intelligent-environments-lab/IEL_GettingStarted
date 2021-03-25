@@ -21,3 +21,7 @@ __pycache__/
 *.mp3
 *.mp4a
 *.m4a
+
+# presentation files
+*.pptx
+*.ppt
