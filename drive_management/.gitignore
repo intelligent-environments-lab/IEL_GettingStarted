@@ -1,0 +1,6 @@
+credentials.txt
+credentials.json
+downloads/*
+__pycache__
+
+!.gitkeep
