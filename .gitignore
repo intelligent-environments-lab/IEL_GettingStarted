@@ -1,9 +1,23 @@
 # MacOS Garbage
 .DS_Store
 
-# Video Files
-*.mp4
-
 # Audio Files
 *.wav
 *.mp3
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Jupyter NB Checkpoints
+.ipynb_checkpoints/# Adobe Files
+*.ai
+
+# video files
+*.mp4*
+*.Mp4
+*.mov
+*.MOV
+*.mp3
+*.mp4a
+*.m4a
